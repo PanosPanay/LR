@@ -10,6 +10,9 @@ const int CANDIDATE_LENGTH = 10;							//Ã¿¸öºòÑ¡Ê½µÄ³¤¶ÈÉÏÏŞ£¨¼´×ÖÄ¸¸öÊı£¬°üÀ¨Ö
 const int PRODUCTION_NUM = 20;								//ÎÄ·¨²úÉúÊ½¸öÊı£©ÉÏÏŞ£¬ÉèÎª20¸ö
 const int NONTERMINAL_NUM = 20;								//·ÇÖÕ½á·û¸öÊıÉÏÏŞ£¬ÉèÎª20¸ö
 const int TERMINAL_NUM = 20;								//ÖÕ½á·û¸öÊıÉÏÏŞ£¨°üÀ¨$£©£¬ÉèÎª20¸ö
+const int STATE_NUM = 50;									//LR·ÖÎö±íµÄ×´Ì¬ÊıÉÏÏŞ£¬ÉèÎª50¸ö
+const int ITEM_NUM = 20;									//Ò»¸öÏîÄ¿¼¯µÄÏîÄ¿ÌõÊıÉÏÏŞ£¬ÉèÎª20¸ö
+const int ITEM_LENGTH = 50;									//ÏîÄ¿³¤¶ÈÉÏÏŞ
 const int INPUT_BUFFER_LENGTH = 50;							//ÊäÈë»º³åÇø³¤¶È£¬ÉèÎª50¸ö
 const int STACK_LENGTH = 50;								//Õ»µÄ³¤¶È£¬ÉèÎª50¸ö
 
@@ -31,6 +34,14 @@ public:
 	int FOLLOWNum = 0;										//FOLLOW¼¯ÔªËØ¸öÊı
 };
 
+class ITEM {
+public:
+	//(0,0)±íÊ¾ÓÃµÄÊÇE'->E
+	int productionOrder;									//ÓÃµÄÊÇÊÇµÚ¼¸¸ö²úÉúÊ½
+	int candidateOrder;										//ÓÃµÄÊÇ¸Ã²úÉúÊ½µÄµÚ¼¸¸öºòÑ¡Ê½
+	string itemStr;											//ÏîÄ¿ÄÚÈİ
+};
+
 //ÎÄ·¨
 class GRAMMER {
 public:
@@ -41,11 +52,13 @@ public:
 	int terminalNum = 0;									//ÖÕ½á·ûÊı
 	int productionNum = 0;									//²»Í¬×ó²¿µÄ²úÉúÊ½Êı
 
-	void Input_Grammer();									//´ÓÎÄ±¾¶ÁÈëÎÄ·¨
+	void Input_Grammer();									//´ÓÎÄ±¾¶ÁÈëÎÄ·¨£¨×¢£º×Ô¶¯½«$¼ÓÈë·ÇÖÕ½á·û±íÄ©£©
 	void Output_Grammer();									//Êä³öÎÄ·¨µ½¿ØÖÆÌ¨
 	void FIRST_Set();										//ÇóFIRST¼¯
 	void FOLLOW_Set();										//ÇóFOLLOW¼¯
 	void Output_First_Follow();								//Êä³öFIRST¼¯ºÍFOLLOW¼¯
+	//Ôö¼Ó¶Ô×Ö·û´®ÇóFIRST¼¯µÄº¯Êı
+	string First_of_Str(string s);							//ÇóÒ»¸ö×Ö·û´®µÄFIRST¼¯
 	int isTerminal(char C);									//ÖÕ½á·ûÔò·µ»ØÔÚÖÕ½á·û±íÖĞµÄÎ»ÖÃ£¨0- £©£¬·ÇÖÕ½á·ûÔò·µ»Ø-1
 	int isNonTerminal(char C);								//·ÇÖÕ½á·û·µ»ØÔÚ·ÇÖÕ½á·û±íÖĞµÄÎ»ÖÃ£¨0- £©£¬ÖÕ½á·ûÔò·µ»Ø-1
 };
@@ -56,10 +69,16 @@ public:
 	GRAMMER G;												//ÎÄ·¨
 	char inputBufer[INPUT_BUFFER_LENGTH] = { 0 };			//ÊäÈë»º³åÇø
 	int forwardIp = 0;										//ÏòÇ°Ö¸Õë
-	PRODUCTION analyzeTable[NONTERMINAL_NUM][TERMINAL_NUM];	//LR(1)Ô¤²â·ÖÎö±í
+	int stateNum = 0;										//×´Ì¬Êı
+	ITEM itemSetCollection[STATE_NUM][ITEM_NUM];			//LR·ÖÎöµÄÏîÄ¿¼¯¹æ·¶×å¡£DFA¿ÉÒÔ½áºÏ·ÖÎö±íµÃµ½.(\0×÷ÎªÒ»¸öÏîÄ¿¼¯µÄ½áÊø±êÖ¾)
+	string actionTable[STATE_NUM][TERMINAL_NUM];			//LR·ÖÎö±íµÄaction±í
+	string gotoTable[STATE_NUM][NONTERMINAL_NUM];			//LR·ÖÎöµÄgoto±í
 
-	void LR1_DFA();											//¹¹ÔìÊ¶±ğÎÄ·¨ËùÓĞ»îÇ°×ºµÄLR(1) DFA
-	void LR1_Analyze_Table();								//¹¹ÔìLR(1)·ÖÎö±í
+	LR();													//Ä¬ÈÏ¹¹Ôìº¯Êı
+	int CMP_ItemSet(string *itemSet1, string *itemSet2);	//±È½Ï2¸öÏîÄ¿¼¯ÊÇ·ñÏàÍ¬£¬ÏàÍ¬·µ»Ø1£¬²»Í¬·µ»Ø0
+	void Closure(string *itemSet);							//¹¹ÔìÏîÄ¿¼¯µÄ±Õ°ü
+	void LR1_DFA();											//¹¹ÔìÊ¶±ğÎÄ·¨ËùÓĞ»îÇ°×ºµÄLR(1) DFA,¼´¹¹ÔìLR(1)ÏîÄ¿¼¯¹æ·¶×å²¢¹¹ÔìLR(1)·ÖÎö±í¡£ÒòÎªDFA¸÷ÏîÄ¿Ö®¼äµÄ¹ØÏµ¼´¿ÉÔÚ·ÖÎö±íÖĞµÃµ½
+	//void LR1_Analyze_Table();								//¹¹ÔìLR(1)·ÖÎö±í
 	void LR1_Analyze();										//LR(1)·ÖÎö³ÌĞò//Ëã·¨4.3
 	void Input();											//½«´ı·ÖÎöµÄ×Ö·û´®w$·ÅÈëÊäÈë»º³åÇø,²¢ÖÃÏòÇ°Ö¸ÕëÖ¸Ïòw$µÄµÚÒ»¸ö·ûºÅ
 };

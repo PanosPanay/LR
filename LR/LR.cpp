@@ -2,7 +2,7 @@
 
 //文法
 //------------------------------------------------------------------------------------------------
-//从文件读入文法
+//从文件读入文法（注：自动将$加入非终结符表末）
 void GRAMMER::Input_Grammer()
 {
 	cout << "题目给定文法存储于G.txt." << endl;
@@ -405,7 +405,7 @@ void GRAMMER::FOLLOW_Set()
 											}
 											else//继续看后面的字符
 											{
-												lastBlank == 1;
+												lastBlank = 1;
 											}
 										}
 									}
@@ -451,6 +451,14 @@ void GRAMMER::Output_First_Follow()//输出FIRST集和FOLLOW集
 	}
 }
 
+//求一个字符串的FIRST集
+string GRAMMER::First_of_Str(string s)
+{
+	//未完成！
+	//末尾加'\0'
+	return string();
+}
+
 //判定是否是终结符，终结符则返回在终结符表中的位置（0- ），非终结符则返回-1
 int GRAMMER::isTerminal(char C)
 {
@@ -487,18 +495,91 @@ int GRAMMER::isNonTerminal(char C)
 		return -1;
 }
 
+
+
 //LR分析
 //------------------------------------------------------------------------------------------------
-//构造识别文法所有活前缀的LR(1) DFA
+//默认构造函数
+LR::LR()
+{
+	//将项目集的项目都初始化为结束标志"\0"
+	for (int i = 0; i < STATE_NUM; ++i)
+	{
+		for (int j = 0; j < ITEM_NUM; ++j)
+		{
+			itemSetCollection[i][j].itemStr = "\0";
+			itemSetCollection[i][j].productionOrder = -1;
+			itemSetCollection[i][j].candidateOrder = -1;
+		}
+	}
+}
+
+//比较2个项目集是否相同，相同返回1，不同返回0，可以通过切割产生式和后缀
+int LR::CMP_ItemSet(string * itemSet1, string * itemSet2)
+{
+	//未完成
+	return 1;
+}
+
+void LR::Closure(string * itemSet)//itemSet为一个string数组,"\0"表终结
+{
+	int changeFlag = 1;//存在改动
+	while (changeFlag == 1)
+	{
+		for (int i = 0; *(itemSet + i) != "\0"; ++i)//每个项目A->a.Bw,a|b...
+		{
+			int j = 0;
+			while ((*(itemSet + i))[j] != '.')
+			{
+				++j;
+			}
+			++j;//到.之后一位字符
+			/*if ((*(itemSet + i))[j] == ',')//规约，填分析表
+			{
+			}*/
+			char leftP = (*(itemSet + i))[j];
+			if (leftP != ',' && G.isNonTerminal(leftP) != -1)
+			{
+				int theProduction = G.isNonTerminal(leftP);
+				for (int num = 0; num < G.productionList[theProduction].candidateNum; ++num)//文法G的每个产生式B->...
+				{
+					//如果该产生式不存在
+					//未写
+					int k = j;
+					++k;
+					string remainderS;
+					int l = 0;
+					while ((*(itemSet + i))[k] != ',')
+					{
+						remainderS[l] = (*(itemSet + i))[k];
+						++l;
+						++k;
+					}
+					while ((*(itemSet + i))[k] != '\0')
+					{
+						++k;
+						remainderS[l] = (*(itemSet + i))[k];
+						remainderS[l + 1] = '\0';
+						++k;
+						string firstSet = G.First_of_Str(remainderS);//first集
+
+					}
+				}
+			}
+		}
+	}
+}
+
+//构造识别文法所有活前缀的LR(1) DFA,即构造LR(1)项目集规范族并构造LR(1)分析表。因为DFA各项目之间的关系即可在分析表中得到
 void LR::LR1_DFA()
 {
 
 }
 
 //构造LR(1)分析表
-void LR::LR1_Analyze_Table()
+/*void LR::LR1_Analyze_Table()
 {
-}
+}*/
 
 //LR(1)分析程序//算法4.3
 void LR::LR1_Analyze()
