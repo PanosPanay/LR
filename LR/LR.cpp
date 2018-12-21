@@ -1,5 +1,70 @@
 #include "LR.h"
 
+//ITEM项目
+//------------------------------------------------------------------------------------------------
+//比较项目i与本项目是否相同，相同返回1，不同返回0
+int ITEM::CMP(ITEM a_item)
+{
+	if (productionOrder == a_item.productionOrder
+		&& candidateOrder == a_item.candidateOrder
+		&& dotPos == a_item.dotPos
+		&& lookaheadChCnt == a_item.lookaheadChCnt)
+	{
+		int i;
+		for (i = 0; i < lookaheadChCnt && lookaheadCh[i] == a_item.lookaheadCh[i]; ++i)
+		{
+		}
+		if (i == lookaheadChCnt)//相同
+			return 1;
+		else
+			return 0;
+	}
+	else
+		return 0;
+}
+
+//返回值：-1表示该终结符不存在向前符号集中，0..表示该终结符在向前看符号集中的位置
+int ITEM::Lookahead_Exist(char terminal)
+{
+	int i;
+	for (i = 0; i < lookaheadChCnt && lookaheadCh[i] != terminal; ++i)
+	{
+	}
+	if (i == lookaheadChCnt)//说明不存在
+	{
+		return -1;
+	}
+	else//存在，返回在向前看符号表中的序号
+	{
+		return i;
+	}
+}
+
+
+//ITEMSET项目集
+//------------------------------------------------------------------------------------------------
+//输入：产生式序号，候选式序号，.位置。
+//输出：-1表示项目不存在，0..表示项目在该项目集中的位置序号，只看所用表达式和.的位置，不看向前符号
+int ITEMSET::Item_Exist(int pOrder, int cOrder, int dPos)
+{
+	int i;
+	int  existFlag = 0;
+	for (i = 0; i < itemCnt && existFlag == 0; ++i)
+	{
+		if (pOrder == itemSet[i].productionOrder
+			&& cOrder == itemSet[i].candidateOrder
+			&& dPos == itemSet[i].dotPos)
+		{
+			existFlag = 1;
+		}
+	}
+	if (existFlag == 1)//存在
+		return (i - 1);
+	else//不存在
+		return -1;
+}
+
+
 //文法
 //------------------------------------------------------------------------------------------------
 //从文件读入文法（注：自动将$加入非终结符表末）
@@ -451,12 +516,48 @@ void GRAMMER::Output_First_Follow()//输出FIRST集和FOLLOW集
 	}
 }
 
-//求一个字符串的FIRST集
-string GRAMMER::First_of_Str(string s)
+//求一个字符串的FIRST集,fisrCnt用来返回first集元素个数，函数返回string是first集
+string GRAMMER::First_of_Str(string s, int & firstCnt)
 {
-	//未完成！
-	//末尾加'\0'
-	return string();
+	firstCnt = 0;
+	string firstCh;
+	int lastBlankFlag = 1;//表示前一个字符为空，所以求first集要继续看下一个字符
+	for (int i = 0; i < s.length() && lastBlankFlag == 1; ++i)
+	{
+		lastBlankFlag = 0;
+		//不会出现空字符的情况
+		int terminalPos = isTerminal(s[i]);
+		int nonTerminalPos = isNonTerminal(s[i]);
+		if (terminalPos > -1)//是终结符，则first集就直接填入该元素，不用继续循环
+		{
+			firstCh[firstCnt] = terminal[terminalPos];
+			++firstCnt;
+		}
+		else//是非终结符
+		{
+			for (int j = 0; j < nonTerminal[nonTerminalNum].FIRSTNum; ++j)
+			{
+				if (nonTerminal[nonTerminalNum].FIRST[j] == '~')
+				{
+					if (j != nonTerminal[nonTerminalNum].FIRSTNum - 1)//不是最后一个字符的first集含空
+					{
+						lastBlankFlag = 1;
+					}
+					else//最后一个字符的first集含空
+					{
+						firstCh[firstCnt] = '~';
+						++firstCnt;
+					}
+				}
+				else
+				{
+					firstCh[firstCnt] = nonTerminal[nonTerminalNum].FIRST[j];
+					++firstCnt;
+				}
+			}
+		}
+	}
+	return firstCh;
 }
 
 //判定是否是终结符，终结符则返回在终结符表中的位置（0- ），非终结符则返回-1
@@ -499,70 +600,71 @@ int GRAMMER::isNonTerminal(char C)
 
 //LR分析
 //------------------------------------------------------------------------------------------------
-//默认构造函数
-LR::LR()
-{
-	//将项目集的项目都初始化为结束标志"\0"
-	for (int i = 0; i < STATE_NUM; ++i)
-	{
-		for (int j = 0; j < ITEM_NUM; ++j)
-		{
-			itemSetCollection[i][j].itemStr = "\0";
-			itemSetCollection[i][j].productionOrder = -1;
-			itemSetCollection[i][j].candidateOrder = -1;
-		}
-	}
-}
-
-//比较2个项目集是否相同，相同返回1，不同返回0，可以通过切割产生式和后缀
-int LR::CMP_ItemSet(string * itemSet1, string * itemSet2)
-{
-	//未完成
-	return 1;
-}
-
-void LR::Closure(string * itemSet)//itemSet为一个string数组,"\0"表终结
+//构造项目集的闭包
+void LR::Closure(ITEMSET* the_ItemSet)//输入：项目集itemSet
 {
 	int changeFlag = 1;//存在改动
 	while (changeFlag == 1)
 	{
-		for (int i = 0; *(itemSet + i) != "\0"; ++i)//每个项目A->a.Bw,a|b...
+		changeFlag = 0;
+		//遍历项目集中的每一个项目[A->a.Bw,a/b/..]
+		for (int i = 0; i < the_ItemSet->itemCnt; ++i)//当前遍历的item位置为i
 		{
-			int j = 0;
-			while ((*(itemSet + i))[j] != '.')
+			//项目A->a.Bw,a/b/..
+			int theProduction = the_ItemSet->itemSet[i].productionOrder;
+			int theCandidate = the_ItemSet->itemSet[i].candidateOrder;
+			int theDotPos = the_ItemSet->itemSet[i].dotPos;
+			if (G.productionList[theProduction].formula[theCandidate][theDotPos] != '\0')//不是规约项目
 			{
-				++j;
-			}
-			++j;//到.之后一位字符
-			/*if ((*(itemSet + i))[j] == ',')//规约，填分析表
-			{
-			}*/
-			char leftP = (*(itemSet + i))[j];
-			if (leftP != ',' && G.isNonTerminal(leftP) != -1)
-			{
-				int theProduction = G.isNonTerminal(leftP);
-				for (int num = 0; num < G.productionList[theProduction].candidateNum; ++num)//文法G的每个产生式B->...
+				//B在非终结符表中的位置
+				int leftPos = G.isNonTerminal(G.productionList[theProduction].formula[theCandidate][theDotPos]);
+				//B是非终结符
+				if (leftPos > -1)
 				{
-					//如果该产生式不存在
-					//未写
-					int k = j;
-					++k;
-					string remainderS;
-					int l = 0;
-					while ((*(itemSet + i))[k] != ',')
+					//遍历文法G中B的每个候选式B->???
+					for (int j = 0; j < G.productionList[leftPos].candidateNum; ++j)
 					{
-						remainderS[l] = (*(itemSet + i))[k];
-						++l;
-						++k;
-					}
-					while ((*(itemSet + i))[k] != '\0')
-					{
-						++k;
-						remainderS[l] = (*(itemSet + i))[k];
-						remainderS[l + 1] = '\0';
-						++k;
-						string firstSet = G.First_of_Str(remainderS);//first集
-
+						//如果[B->.???]不存在，则加入
+						int itemPos = the_ItemSet->Item_Exist(leftPos, j, 0);//itemPos代表要增加/修改的项目序号
+						if (itemPos == -1)//该项目不存在，加入
+						{
+							changeFlag = 1;
+							the_ItemSet->itemSet[the_ItemSet->itemCnt].productionOrder = leftPos;
+							the_ItemSet->itemSet[the_ItemSet->itemCnt].candidateOrder = j;
+							the_ItemSet->itemSet[the_ItemSet->itemCnt].dotPos = 0;
+							the_ItemSet->itemSet[the_ItemSet->itemCnt].lookaheadChCnt = 0;
+							itemPos = the_ItemSet->itemCnt;
+							++(the_ItemSet->itemCnt);
+						}
+						//遍历FIRST[wa/wb/...]中的每个终结符t，如果[B->.???,t]不在项目中，则把t加入[B->.???]的lookahead中	
+						//求FIRST集
+						string remainderStr;
+						//','左边（即产生式）的剩余部分
+						for (int k = theDotPos + 1; G.productionList[theProduction].formula[theCandidate][k] != '\0'; ++k)
+						{
+							remainderStr += G.productionList[theProduction].formula[theCandidate][k];
+						}
+						int firstCnt = 0;//fisrt集中非终结符个数
+						string firstCh;//first集
+						//对每一个小尾巴（lookahead）
+						for (int k = 0; k < the_ItemSet->itemSet[i].lookaheadChCnt; ++k)
+						{
+							string temp_remainderStr = remainderStr;
+							temp_remainderStr += the_ItemSet->itemSet[i].lookaheadCh[k];
+							firstCh = G.First_of_Str(temp_remainderStr, firstCnt);
+							for (int l = 0; l < firstCnt; ++l)
+							{
+								int lookaheadPos = the_ItemSet->itemSet[itemPos].Lookahead_Exist(firstCh[l]);
+								if (lookaheadPos == -1)//该first元素不存在lookahead集合中,则加入
+								{
+									changeFlag = 1;
+									lookaheadPos = the_ItemSet->itemSet[itemPos].lookaheadChCnt;
+									the_ItemSet->itemSet[itemPos].lookaheadCh[lookaheadPos] = firstCh[l];
+									++(the_ItemSet->itemSet[itemPos].lookaheadChCnt);
+								}
+							}
+						}
+						
 					}
 				}
 			}
@@ -609,3 +711,4 @@ void LR::Input()
 	inputBufer[i] = '$';
 	forwardIp = 0;//向前指针指向w$的第一个符号
 }
+

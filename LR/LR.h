@@ -21,7 +21,7 @@ class PRODUCTION {
 public:
 	char leftPart;											//产生式左部
 	int candidateNum = 0;									//候选式数目
-	char formula[CANDIDATE_NUM][CANDIDATE_LENGTH] = { 0 };	//存储候选式集合,\0作为每个候选式的结束标志
+	char formula[CANDIDATE_NUM][CANDIDATE_LENGTH] = { 0 };	//存储候选式集合,'\0'作为每个候选式的结束标志
 };
 
 //非终结符类
@@ -34,12 +34,28 @@ public:
 	int FOLLOWNum = 0;										//FOLLOW集元素个数
 };
 
+//项目
 class ITEM {
 public:
 	//(0,0)表示用的是E'->E
 	int productionOrder;									//用的是是第几个产生式
 	int candidateOrder;										//用的是该产生式的第几个候选式
-	string itemStr;											//项目内容
+	int dotPos;												//"."的位置，eg.A->.XYZ,则dotPos=0；A->X.YZ,则dotPos=1...
+	int lookaheadChCnt;										//项目的向前符号个数
+	char lookaheadCh[TERMINAL_NUM];							//项目的向前看符号集合
+
+	int CMP(ITEM a_item);									//比较项目i与本项目是否相同，相同返回1，不同返回0
+	int Lookahead_Exist(char terminal);						//返回值：-1表示该终结符不存在向前符号集中，0..表示该终结符在向前看符号集中的位置
+};
+
+//项目集
+class ITEMSET {
+public:
+	ITEM itemSet[ITEM_NUM];									//项目数组，即项目集
+	int itemCnt;											//项目集的项目数
+
+	int Item_Exist(int pOrder, int cOrder, int dPos);		//输入：产生式序号，候选式序号，.位置。
+															//输出：-1表示项目不存在，0..表示项目在该项目集中的位置序号，只看所用表达式和.的位置，不看向前符号
 };
 
 //文法
@@ -58,7 +74,7 @@ public:
 	void FOLLOW_Set();										//求FOLLOW集
 	void Output_First_Follow();								//输出FIRST集和FOLLOW集
 	//增加对字符串求FIRST集的函数
-	string First_of_Str(string s);							//求一个字符串的FIRST集
+	string First_of_Str(string s,int& firstCnt);			//求一个字符串的FIRST集
 	int isTerminal(char C);									//终结符则返回在终结符表中的位置（0- ），非终结符则返回-1
 	int isNonTerminal(char C);								//非终结符返回在非终结符表中的位置（0- ），终结符则返回-1
 };
@@ -70,13 +86,11 @@ public:
 	char inputBufer[INPUT_BUFFER_LENGTH] = { 0 };			//输入缓冲区
 	int forwardIp = 0;										//向前指针
 	int stateNum = 0;										//状态数
-	ITEM itemSetCollection[STATE_NUM][ITEM_NUM];			//LR分析的项目集规范族。DFA可以结合分析表得到.(\0作为一个项目集的结束标志)
+	ITEMSET itemSetCollection[STATE_NUM];					//LR分析的项目集规范族。DFA可以结合分析表得到.
 	string actionTable[STATE_NUM][TERMINAL_NUM];			//LR分析表的action表
 	string gotoTable[STATE_NUM][NONTERMINAL_NUM];			//LR分析的goto表
 
-	LR();													//默认构造函数
-	int CMP_ItemSet(string *itemSet1, string *itemSet2);	//比较2个项目集是否相同，相同返回1，不同返回0
-	void Closure(string *itemSet);							//构造项目集的闭包
+	void Closure(ITEMSET* the_ItemSet);						//构造项目集的闭包
 	void LR1_DFA();											//构造识别文法所有活前缀的LR(1) DFA,即构造LR(1)项目集规范族并构造LR(1)分析表。因为DFA各项目之间的关系即可在分析表中得到
 	//void LR1_Analyze_Table();								//构造LR(1)分析表
 	void LR1_Analyze();										//LR(1)分析程序//算法4.3
