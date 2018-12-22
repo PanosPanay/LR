@@ -888,165 +888,167 @@ void LR::LR1_Analyze()
 	OutPut_LR1_Analyze_Table();
 
 	//LR分析程序
-	cout << endl << "输入q退出,其余任意符号继续分析" << endl;
+	cout << endl << "输入q退出,输入1进行LR(1)分析，输入2进行LR(1)翻译，其余键默认进行LR(1)分析" << endl;
 	char inCh;
 	cin >> inCh;
 	while (inCh != 'q')
 	{
-		//输入符号串及初始化
-		Input();
-		forwardIp = 0;
-		//stack <int> stateStk;//状态栈
-		//stack <char> symbleStk;//符号栈
-		//stateStk.push(0);
-		//symbleStk.push('-');
-		int stateStk[100];//状态栈
-		char symbleStk[100];//符号栈
-		stateStk[0] = 0;
-		symbleStk[0] = '-';
-		int stkTop = 0;//栈顶指针
-
-		cout << endl << "对符号串";
-		for (int i = 0; inputBufer[i] != '\0'; ++i)
+		if (inCh == '2')
 		{
-			cout << inputBufer[i];
+			Translate();
 		}
-		cout << "的分析动作如下表：(注：栈第一行代表状态栈，第二行代表符号栈)" << endl;
-		cout << "步骤 ";//5位
+		else
+		{
+			//输入符号串及初始化
+			Input();
+			forwardIp = 0;
+			//stack <int> stateStk;//状态栈
+			//stack <char> symbleStk;//符号栈
+			//stateStk.push(0);
+			//symbleStk.push('-');
+			int stateStk[100];//状态栈
+			char symbleStk[100];//符号栈
+			stateStk[0] = 0;
+			symbleStk[0] = '-';
+			int stkTop = 0;//栈顶指针
 
-		//for (int i = 0; i < 24; ++i)
-		//{
-		//	cout << " ";
-		//}
-		cout << "栈";//50位
-		for (int i = 0; i < 48; ++i)
-		{
-			cout << " ";
-		}
-		cout << "输入";//30位
-		for (int i = 0; i < 26+2; ++i)
-		{
-			cout << " ";
-		}
-		cout << "分析动作" << endl;
-		
-		//开始分析
-		int goOnFlag = 1;
-		for (int i = 0; goOnFlag == 1; ++i)
-		{
-			//状态
-			cout << i;
-			if (i < 10)
-			{
-				cout << "    ";
-			}
-			else
-				cout << "   ";
+			cout << endl << "对该符号串";
+			cout << "的分析动作如下表：(注：栈第一行代表状态栈，第二行代表符号栈)" << endl;
+			cout << "步骤 ";//5位
 
-			//状态栈
-			int j;
-			int len1 = 0;
-			for (j = 0; j <= stkTop; ++j)
-			{
-				if (stateStk[j] >= 10)
-					len1 += 2;
-				else
-					len1 += 1;
-				cout << stateStk[j] << " ";
-				++len1;
-			}
-			for (j = len1 + 1; j < 50; ++j)
+			//for (int i = 0; i < 24; ++i)
+			//{
+			//	cout << " ";
+			//}
+			cout << "栈";//50位
+			for (int i = 0; i < 48; ++i)
 			{
 				cout << " ";
 			}
-			int oldStkTop = stkTop;
-			int oldStateStk[100];
-			char oldSymbleStk[100];
-			for (j = 0; j <= stkTop; ++j)
-			{
-				oldStateStk[j] = stateStk[j];
-				oldSymbleStk[j] = symbleStk[j];
-			}
-
-			//输入
-			for (j = 0; inputBufer[j] != '\0'; ++j)
-			{
-				if (j < forwardIp)
-				{
-					cout << " ";
-				}
-				else
-				{
-					cout << inputBufer[j];
-				}
-			}
-			for (; j < 30; ++j)
+			cout << "输入";//30位
+			for (int i = 0; i < 26 + 2; ++i)
 			{
 				cout << " ";
 			}
+			cout << "分析动作" << endl;
 
-			//分析动作
-			int inputTerminalPos = G.isTerminal(inputBufer[forwardIp]);
-			if (actionTable[stateStk[stkTop]][inputTerminalPos][0] == 'S')
+			//开始分析
+			int goOnFlag = 1;
+			for (int i = 0; goOnFlag == 1; ++i)
 			{
-				string tempStr = actionTable[stateStk[stkTop]][inputTerminalPos];
-				tempStr.erase(0, 1);
-				cout << "Shift " << tempStr << endl;
-
-				++stkTop;
-				stateStk[stkTop] = stoi(tempStr);
-				symbleStk[stkTop] = inputBufer[forwardIp];
-				++forwardIp;
-			}
-			else if (actionTable[stateStk[stkTop]][inputTerminalPos][0] == 'R')//R|productionOrder|candidateOrder| S->ABC|
-			{
-				//分词
-				char actionCh[50];
-				strcpy_s(actionCh, actionTable[stateStk[stkTop]][inputTerminalPos].c_str());
-				char *nextToken = NULL;
-				const char* split = "|";
-				char * dataPart = strtok_s(actionCh, split, &nextToken);
-				string thePart = dataPart;//分出'R'
-				dataPart = strtok_s(NULL, split, &nextToken);
-				thePart = dataPart;//产生式左部序号
-				int leftOrder = stoi(thePart);
-				dataPart = strtok_s(NULL, split, &nextToken);
-				thePart = dataPart;//候选式序号
-				dataPart = strtok_s(NULL, split, &nextToken);
-				thePart = dataPart;//" 规约产生式"
-
-				stkTop = stkTop - thePart.length() + 4 + 1;//去掉空格和A->共4个符号
-				symbleStk[stkTop] = thePart[1];
-				stateStk[stkTop] = gotoTable[stateStk[stkTop - 1]][leftOrder];
-
-				cout << "Reduce by" << thePart << endl;
-			}
-			else if (actionTable[stateStk[stkTop]][inputTerminalPos] == "ACC")
-			{
-				goOnFlag = 0;
-				cout << "ACC" << endl;
-			}
-			else//错误
-			{
-				cout << endl << "错误！" << endl;
-				goOnFlag = 0;
-			}
-
-			//符号栈
-			cout << "     ";
-			for (j = 0; j <= oldStkTop; ++j)
-			{
-				cout << oldSymbleStk[j];
-				if (oldStateStk[j] >= 10)
-					cout << "  ";
+				//状态
+				cout << i;
+				if (i < 10)
+				{
+					cout << "    ";
+				}
 				else
+					cout << "   ";
+
+				//状态栈
+				int j;
+				int len1 = 0;
+				for (j = 0; j <= stkTop; ++j)
+				{
+					if (stateStk[j] >= 10)
+						len1 += 2;
+					else
+						len1 += 1;
+					cout << stateStk[j] << " ";
+					++len1;
+				}
+				for (j = len1 + 1; j < 50; ++j)
+				{
 					cout << " ";
+				}
+				int oldStkTop = stkTop;
+				int oldStateStk[100];
+				char oldSymbleStk[100];
+				for (j = 0; j <= stkTop; ++j)
+				{
+					oldStateStk[j] = stateStk[j];
+					oldSymbleStk[j] = symbleStk[j];
+				}
+
+				//输入
+				for (j = 0; inputBufer[j] != '\0'; ++j)
+				{
+					if (j < forwardIp)
+					{
+						cout << " ";
+					}
+					else
+					{
+						cout << inputBufer[j];
+					}
+				}
+				for (; j < 30; ++j)
+				{
+					cout << " ";
+				}
+
+				//分析动作
+				int inputTerminalPos = G.isTerminal(inputBufer[forwardIp]);
+				if (actionTable[stateStk[stkTop]][inputTerminalPos][0] == 'S')
+				{
+					string tempStr = actionTable[stateStk[stkTop]][inputTerminalPos];
+					tempStr.erase(0, 1);
+					cout << "Shift " << tempStr << endl;
+
+					++stkTop;
+					stateStk[stkTop] = stoi(tempStr);
+					symbleStk[stkTop] = inputBufer[forwardIp];
+					++forwardIp;
+				}
+				else if (actionTable[stateStk[stkTop]][inputTerminalPos][0] == 'R')//R|productionOrder|candidateOrder| S->ABC|
+				{
+					//分词
+					char actionCh[50];
+					strcpy_s(actionCh, actionTable[stateStk[stkTop]][inputTerminalPos].c_str());
+					char *nextToken = NULL;
+					const char* split = "|";
+					char * dataPart = strtok_s(actionCh, split, &nextToken);
+					string thePart = dataPart;//分出'R'
+					dataPart = strtok_s(NULL, split, &nextToken);
+					thePart = dataPart;//产生式左部序号
+					int leftOrder = stoi(thePart);
+					dataPart = strtok_s(NULL, split, &nextToken);
+					thePart = dataPart;//候选式序号
+					dataPart = strtok_s(NULL, split, &nextToken);
+					thePart = dataPart;//" 规约产生式"
+
+					stkTop = stkTop - thePart.length() + 4 + 1;//去掉空格和A->共4个符号
+					symbleStk[stkTop] = thePart[1];
+					stateStk[stkTop] = gotoTable[stateStk[stkTop - 1]][leftOrder];
+
+					cout << "Reduce by" << thePart << endl;
+				}
+				else if (actionTable[stateStk[stkTop]][inputTerminalPos] == "ACC")
+				{
+					goOnFlag = 0;
+					cout << "ACC" << endl;
+				}
+				else//错误
+				{
+					cout << endl << "错误！" << endl;
+					goOnFlag = 0;
+				}
+
+				//符号栈
+				cout << "     ";
+				for (j = 0; j <= oldStkTop; ++j)
+				{
+					cout << oldSymbleStk[j];
+					if (oldStateStk[j] >= 10)
+						cout << "  ";
+					else
+						cout << " ";
+				}
+				cout << endl;
 			}
-			cout << endl;
 		}
 		
-
-		cout << endl << "输入q退出,其余任意符号继续分析" << endl;
+		cout << endl << "输入q退出,输入1进行LR(1)分析，输入2进行LR(1)翻译，其余键默认进行LR(1)分析" << endl;
 		cin >> inCh;
 	}
 }
@@ -1055,14 +1057,32 @@ void LR::LR1_Analyze()
 void LR::Input()
 {
 	char C;
-	cout << endl << "请输入您想要分析的符号串（以$作为输入结束标志）:" << endl;
+	cout << endl << "请输入您想要分析的符号串（以$作为输入结束标志，数字只识别正整数）:" << endl;
 	cin >> C;
 	int i = 0;
+	numCnt = 0;
 	while (C != '$')
 	{
-		inputBufer[i] = C;
-		++i;
-		cin >> C;
+		//判断是否为数字
+		if (C<'0' || C>'9')//不是数字
+		{
+			inputBufer[i] = C;
+			++i;
+			cin >> C;
+		}
+		else//是数字
+		{
+			inputBufer[i] = 'n';
+			++i;
+			int number = 0;
+			while (C >= '0' && C <= '9')
+			{
+				number = number * 10 + C - '0';
+				cin >> C;
+			}
+			inputNum[numCnt] = number;
+			++numCnt;
+		}
 	}
 	inputBufer[i] = '$';
 	forwardIp = 0;//向前指针指向w$的第一个符号
@@ -1327,6 +1347,215 @@ void LR::OutPut_LR1_Analyze_Table()
 		cout << endl;
 		for (int i = 0; i < 6 + (G.terminalNum + G.nonTerminalNum) * 11; ++i)
 			cout << "-";//输出行分割线
+		cout << endl;
+	}
+}
+
+//翻译程序
+void LR::Translate()
+{
+	//输入符号串及初始化
+	Input();
+	forwardIp = 0;
+	int stateStk[100];//状态栈
+	string valStk[100];//value栈
+	stateStk[0] = 0;
+	valStk[0] = "-";
+	int stkTop = 0;//栈顶指针
+
+	cout << endl << "对该符号串";
+	cout << "的分析动作如下表：(注：栈第一行代表状态栈，第二行代表value栈)" << endl;
+	cout << "步骤 ";//5位
+
+	//for (int i = 0; i < 24; ++i)
+	//{
+	//	cout << " ";
+	//}
+	cout << "栈";//50位
+	for (int i = 0; i < 48; ++i)
+	{
+		cout << " ";
+	}
+	cout << "输入";//30位
+	for (int i = 0; i < 26 + 2; ++i)
+	{
+		cout << " ";
+	}
+	cout << "分析及翻译动作" << endl;
+
+	//开始分析
+	int theNumCnt = 0;
+	int goOnFlag = 1;
+	for (int i = 0; goOnFlag == 1; ++i)
+	{
+		//状态
+		cout << i;
+		if (i < 10)
+		{
+			cout << "    ";
+		}
+		else
+			cout << "   ";
+
+		//value栈
+		int j;
+		int len1 = 0;
+		for (j = 0; j <= stkTop; ++j)
+		{
+			if (stateStk[j] >= 10)
+				len1 += 2;
+			else
+				len1 += 1;
+			cout << stateStk[j] << " ";
+			++len1;
+		}
+		for (j = len1 + 1; j < 50; ++j)
+		{
+			cout << " ";
+		}
+		int oldStkTop = stkTop;
+		int oldStateStk[100];
+		string oldvalStk[100];
+		for (j = 0; j <= stkTop; ++j)
+		{
+			oldStateStk[j] = stateStk[j];
+			oldvalStk[j] = valStk[j];
+		}
+
+		//输入
+		for (j = 0; inputBufer[j] != '\0'; ++j)
+		{
+			if (j < forwardIp)
+			{
+				cout << " ";
+			}
+			else
+			{
+				cout << inputBufer[j];
+			}
+		}
+		for (; j < 30; ++j)
+		{
+			cout << " ";
+		}
+
+		//分析动作
+		int inputTerminalPos = G.isTerminal(inputBufer[forwardIp]);
+		if (actionTable[stateStk[stkTop]][inputTerminalPos][0] == 'S')//移进
+		{
+			string tempStr = actionTable[stateStk[stkTop]][inputTerminalPos];
+			tempStr.erase(0, 1);
+			//cout << "Shift " << tempStr;
+
+			++stkTop;
+			stateStk[stkTop] = stoi(tempStr);
+			if (inputBufer[forwardIp] == 'n')
+			{
+				valStk[stkTop] = to_string(inputNum[theNumCnt]);
+				cout << "val[newtop]=" << valStk[stkTop] << ",";
+				++theNumCnt;
+			}
+			else
+			{
+				valStk[stkTop] = " ";
+			}
+			++forwardIp;
+
+			cout << "Shift " << tempStr << endl;
+		}
+		//规约
+		else if (actionTable[stateStk[stkTop]][inputTerminalPos][0] == 'R')//R|productionOrder|candidateOrder| S->ABC|
+		{
+			//分词
+			char actionCh[50];
+			strcpy_s(actionCh, actionTable[stateStk[stkTop]][inputTerminalPos].c_str());
+			char *nextToken = NULL;
+			const char* split = "|";
+			char * dataPart = strtok_s(actionCh, split, &nextToken);
+			string thePart = dataPart;//分出'R'
+			dataPart = strtok_s(NULL, split, &nextToken);
+			thePart = dataPart;//产生式左部序号
+			int leftOrder = stoi(thePart);
+			dataPart = strtok_s(NULL, split, &nextToken);
+			thePart = dataPart;//候选式序号
+			dataPart = strtok_s(NULL, split, &nextToken);
+			thePart = dataPart;//" 规约产生式"
+
+			int newValue;
+			if (thePart[5] == '+')
+			{
+				newValue = stoi(valStk[stkTop - 2]) + stoi(valStk[stkTop]);
+				cout << "val[newtop]=val[top-2]+val[top]=" << newValue << " , ";
+				stkTop = stkTop - thePart.length() + 4 + 1;//去掉空格和A->共4个符号
+				valStk[stkTop] = to_string(newValue);
+			}
+			else if (thePart[5] == '-')
+			{
+				newValue = stoi(valStk[stkTop - 2]) - stoi(valStk[stkTop]);
+				cout << "val[newtop]=val[top-2]-val[top]=" << newValue << " , ";
+				stkTop = stkTop - thePart.length() + 4 + 1;//去掉空格和A->共4个符号
+				valStk[stkTop] = to_string(newValue);
+			}
+			else if (thePart[5] == '*')
+			{
+				newValue = stoi(valStk[stkTop - 2]) * stoi(valStk[stkTop]);
+				cout << "val[newtop]=val[top-2]*val[top]=" << newValue << " , ";
+				stkTop = stkTop - thePart.length() + 4 + 1;//去掉空格和A->共4个符号
+				valStk[stkTop] = to_string(newValue);
+			}
+			else if (thePart[5] == '/')
+			{
+				if (stoi(valStk[stkTop]) == 0)
+				{
+					cout << endl << "错误，除数不能为0！" << endl;
+				}
+				newValue = stoi(valStk[stkTop - 2]) / stoi(valStk[stkTop]);
+				cout << "val[newtop]=val[top-2]/val[top]=" << newValue << " , ";
+				stkTop = stkTop - thePart.length() + 4 + 1;//去掉空格和A->共4个符号
+				valStk[stkTop] = to_string(newValue);
+			}
+			else if (thePart[4] == '(')
+			{
+				newValue = stoi(valStk[stkTop - 1]);
+				cout << "val[newtop]=val[top-1]=" << newValue << " , ";
+				stkTop = stkTop - thePart.length() + 4 + 1;//去掉空格和A->共4个符号
+				valStk[stkTop] = to_string(newValue);
+			}
+			else
+			{
+				stkTop = stkTop - thePart.length() + 4 + 1;//去掉空格和A->共4个符号
+				//valStk[stkTop] = " ";
+			}
+
+			//stkTop = stkTop - thePart.length() + 4 + 1;//去掉空格和A->共4个符号
+			//valStk[stkTop] = to_string(newValue);
+			stateStk[stkTop] = gotoTable[stateStk[stkTop - 1]][leftOrder];
+
+			cout << "Reduce by" << thePart << endl;
+		}
+		else if (actionTable[stateStk[stkTop]][inputTerminalPos] == "ACC")
+		{
+			goOnFlag = 0;
+			cout << "print(val[top]=" << valStk[stkTop] << ") , ";
+			cout << "ACC" << endl;
+		}
+		else//错误
+		{
+			cout << endl << "错误！" << endl;
+			goOnFlag = 0;
+		}
+
+		//value栈
+		cout << "     ";
+		//len1 = 0;
+		for (j = 0; j <= oldStkTop; ++j)
+		{
+			cout << oldvalStk[j];
+			if (oldStateStk[j] >= 10)
+				cout << "  ";
+			else
+				cout << " ";
+		}
 		cout << endl;
 	}
 }

@@ -85,6 +85,8 @@ class LR {
 public:
 	GRAMMER G;												//文法
 	char inputBufer[INPUT_BUFFER_LENGTH] = { 0 };			//输入缓冲区
+	int inputNum[INPUT_BUFFER_LENGTH];						//存储输入的数字
+	int numCnt;												//输入的数字数
 	int forwardIp = 0;										//向前指针
 	int stateNum = 0;										//状态数
 	ITEMSET itemSetCollection[STATE_NUM];					//LR分析的项目集规范族。DFA可以结合分析表得到.
@@ -99,4 +101,5 @@ public:
 	int ItemSet_Exist(ITEMSET newItemSet);					//判断项目集是否已经存在，不存在返回-1，存在返回在项目集规范族中的序号0..
 	void Output_LR1_ItemSetCollection();					//输出LR(1)项目集规范族
 	void OutPut_LR1_Analyze_Table();						//输出LR(1)分析表
+	void Translate();										//翻译程序
 };
