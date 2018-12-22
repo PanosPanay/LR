@@ -943,3 +943,111 @@ int LR::ItemSet_Exist(ITEMSET newItemSet)
 		return -1;
 }
 
+//输出项目集规范族
+void LR::Output_LR1_ItemSetCollection()
+{
+	for (int i = 0; i < stateNum; ++i)
+	{
+		cout << "I" << i << ": ";
+		for (int j = 0; j < itemSetCollection[i].itemCnt; ++i)
+		{
+			cout << "[";
+			int currentProductionOrder = itemSetCollection[i].itemSet[j].productionOrder;
+			int currentCandidateOrder = itemSetCollection[i].itemSet[j].candidateOrder;
+			int currentDotPos = itemSetCollection[i].itemSet[j].dotPos;
+			int currentLookaheadCnt = itemSetCollection[i].itemSet[j].lookaheadChCnt;
+			if (currentProductionOrder == G.productionNum)//是S->S'
+			{
+				cout << "S'";
+			}
+			else
+			{
+				cout << G.nonTerminal[currentProductionOrder].nonTerminal;
+			}
+			cout << "->";
+			for (int k = 0; G.productionList[currentProductionOrder].formula[currentCandidateOrder][k] != '\0'; ++k)
+			{
+				if (currentDotPos == k)
+				{
+					cout << ".";
+				}
+				cout << G.productionList[currentProductionOrder].formula[currentCandidateOrder][k];
+			}
+			cout << ",";
+			for (int k = 0; k < currentLookaheadCnt; ++k)
+			{
+				cout << itemSetCollection[i].itemSet[j].lookaheadCh[k];
+				if (k != currentLookaheadCnt - 1)
+				{
+					cout << "|";
+				}
+			}
+			cout << "] ";
+		}
+		cout << endl;
+	}
+}
+
+//输出LR(1)分析表
+void LR::OutPut_LR1_Analyze_Table()
+{
+	//第一行 状态，action，goto
+	cout << "状态 |";
+	int i;
+	for (i = 0; i < G.terminalNum / 2; ++i)
+	{
+		for (int j = 0; j < 11; ++j)//一个表项输出10位，加上‘|’11位
+		{
+			cout << " ";
+		}
+	}
+	cout << "  action   ";
+	for (++i; i < G.terminalNum; ++i)
+	{
+		int len;
+		if (i == G.terminalNum - 1)
+		{
+			len = 10;
+		}
+		else
+			len = 11;
+		for (int j = 0; j < len; ++j)
+		{
+			cout << " ";
+		}
+	}
+	cout << "|";
+	//输出goto其实可以缩减表项长度位5...
+	for (i = 0; i < G.nonTerminalNum / 2; ++i)
+	{
+		for (int j = 0; j < 11; ++j)//一个表项输出10位，加上‘|’11位
+		{
+			cout << " ";
+		}
+	}
+	cout << "   goto   ";
+	cout << endl;
+
+	//第二行 终结符和非终结符
+	cout << "     |";
+	for (i = 0; i < G.terminalNum; ++i)
+	{
+		cout << "    ";
+		cout << G.terminal[i];
+		cout << "     |";
+	}
+	for (i = 0; i < G.nonTerminalNum; ++i)
+	{
+		cout << "    ";
+		cout << G.nonTerminal[i].nonTerminal;
+		cout << "     ";
+		if (i != G.nonTerminalNum - 1)
+		{
+			cout << "|";
+		}
+	}
+
+	//输出剩余表项
+
+}
+

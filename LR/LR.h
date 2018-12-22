@@ -97,4 +97,6 @@ public:
 	void LR1_Analyze();										//LR(1)分析程序//算法4.3
 	void Input();											//将待分析的字符串w$放入输入缓冲区,并置向前指针指向w$的第一个符号
 	int ItemSet_Exist(ITEMSET newItemSet);					//判断项目集是否已经存在，不存在返回-1，存在返回在项目集规范族中的序号0..
+	void Output_LR1_ItemSetCollection();					//输出LR(1)项目集规范族
+	void OutPut_LR1_Analyze_Table();						//输出LR(1)分析表
 };
