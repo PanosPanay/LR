@@ -596,6 +596,18 @@ int GRAMMER::isNonTerminal(char C)
 		return -1;
 }
 
+//拓广文法，只是将S'->S加到文法产生式集合末尾，其他一律不变！
+void GRAMMER::ExtendGrammer()
+{
+	if (productionNum != 0)//文法不为空
+	{
+		productionList[productionNum].leftPart = '\0';//因为左部只能表示单个字符，所以无法存入S'，用'\0'代替
+		productionList[productionNum].candidateNum = 1;
+		productionList[productionNum].formula[0][0] = nonTerminal[0].nonTerminal;
+		productionList[productionNum].formula[0][1] = '\0';
+	}
+}
+
 
 
 //LR分析
@@ -634,7 +646,7 @@ void LR::Closure(ITEMSET* the_ItemSet)//输入：项目集itemSet
 							the_ItemSet->itemSet[the_ItemSet->itemCnt].dotPos = 0;
 							the_ItemSet->itemSet[the_ItemSet->itemCnt].lookaheadChCnt = 0;
 							itemPos = the_ItemSet->itemCnt;
-							++(the_ItemSet->itemCnt);
+							++(the_ItemSet->itemCnt);//项目集项目数+1
 						}
 						//遍历FIRST[wa/wb/...]中的每个终结符t，如果[B->.???,t]不在项目中，则把t加入[B->.???]的lookahead中	
 						//求FIRST集
@@ -660,7 +672,7 @@ void LR::Closure(ITEMSET* the_ItemSet)//输入：项目集itemSet
 									changeFlag = 1;
 									lookaheadPos = the_ItemSet->itemSet[itemPos].lookaheadChCnt;
 									the_ItemSet->itemSet[itemPos].lookaheadCh[lookaheadPos] = firstCh[l];
-									++(the_ItemSet->itemSet[itemPos].lookaheadChCnt);
+									++(the_ItemSet->itemSet[itemPos].lookaheadChCnt);//该项目小尾巴数+1
 								}
 							}
 						}
@@ -675,7 +687,87 @@ void LR::Closure(ITEMSET* the_ItemSet)//输入：项目集itemSet
 //构造识别文法所有活前缀的LR(1) DFA,即构造LR(1)项目集规范族并构造LR(1)分析表。因为DFA各项目之间的关系即可在分析表中得到
 void LR::LR1_DFA()
 {
+	//对分析表初始化
+	//goto分析表初始化
+	for (int i = 0; i < STATE_NUM; ++i)
+	{
+		for (int j = 0; j < NONTERMINAL_NUM; ++j)
+		{
+			gotoTable[i][j] = -1;
+		}
+	}
 
+	//拓广文法
+	//stateNum=0;
+	itemSetCollection[stateNum].itemSet[0].productionOrder = G.productionNum;//拓广文法S'->S这一产生式存储在文法产生式集合最后的位置
+	itemSetCollection[stateNum].itemSet[0].candidateOrder = 0;//E'->E,拓广文法的候选式序号设为-1
+	//[S'->.S,$]
+	itemSetCollection[stateNum].itemSet[0].dotPos = 0;
+	itemSetCollection[stateNum].itemSet[0].lookaheadCh[0] = '$';
+	itemSetCollection[stateNum].itemSet[0].lookaheadChCnt = 1;
+	stateNum = 1;
+	//closure([S'->.S,$])
+	Closure(&itemSetCollection[0]);//有问题
+
+	int changeFlag = 1;//有更新
+	while (changeFlag == 1)
+	{
+		changeFlag = 0;
+		ITEMSET newItemSet;
+		//遍历每一个项目集I,即每一个状态
+		for (int i = 0; i < stateNum; ++i)
+		{
+			//遍历每一个文法符号x（包括终结符和非终结符）
+			//先遍历非终结符
+			for (int j = 0; j < G.nonTerminalNum; ++j)
+			{	//每一个文法符号都可能产生一个新的项目集
+				newItemSet.itemCnt = 0;
+
+				char x = G.nonTerminal[j].nonTerminal;
+				int xExistFlag = 0;//=0表示go（I,X)=空，即该项目集不存在此转换
+				
+				//遍历该项目集的每一个项目
+				for (int k = 0; k < itemSetCollection[i].itemCnt; ++k)
+				{
+					int currentDotPos = itemSetCollection[i].itemSet[k].dotPos;
+					int currentProductionOrder = itemSetCollection[i].itemSet[k].productionOrder;
+					int currentCandidateOrder = itemSetCollection[i].itemSet[k].candidateOrder;
+					int currentLookaheadCnt = itemSetCollection[i].itemSet[k].lookaheadChCnt;
+					//A->b.xw,..
+					if (G.productionList[currentProductionOrder].formula[currentCandidateOrder][currentDotPos] == x)
+					{
+						xExistFlag = 1;
+						newItemSet.itemSet[newItemSet.itemCnt].productionOrder = currentProductionOrder;
+						newItemSet.itemSet[newItemSet.itemCnt].candidateOrder = currentCandidateOrder;
+						newItemSet.itemSet[newItemSet.itemCnt].dotPos = currentDotPos + 1;//.右移一位
+						newItemSet.itemSet[newItemSet.itemCnt].lookaheadChCnt = currentLookaheadCnt;
+						for (int l = 0; l < currentLookaheadCnt; ++l)
+						{
+							newItemSet.itemSet[newItemSet.itemCnt].lookaheadCh[l] = itemSetCollection[i].itemSet[k].lookaheadCh[l];
+						}
+						++newItemSet.itemCnt;
+					}
+				}
+				if (xExistFlag == 1)//go（I, X) != 空
+				{
+					Closure(&newItemSet);
+					int newItemExisted = ItemSet_Exist(newItemSet);
+					if (newItemExisted == -1)//不存在该项目集，则加入,并在分析表中填入状态转移序号
+					{
+						itemSetCollection[stateNum] = newItemSet;//是否要自己重载等号运算符？
+						gotoTable[i][j] = stateNum;
+						++stateNum;
+					}
+					else//该项目集已存在
+					{
+						gotoTable[i][j] = newItemExisted;
+					}
+				}
+			}
+			//再遍历终结符
+			for()
+		}
+	}
 }
 
 //构造LR(1)分析表
@@ -710,5 +802,58 @@ void LR::Input()
 	}
 	inputBufer[i] = '$';
 	forwardIp = 0;//向前指针指向w$的第一个符号
+}
+
+//判断项目集是否已经存在，不存在返回-1，存在返回在项目集规范族中的序号0..(即状态序号)
+int LR::ItemSet_Exist(ITEMSET newItemSet)
+{
+	int existFlag = 0;
+	//遍历已存在的每一个项目集
+	int i;
+	for (i = 0; i < stateNum && existFlag == 0; ++i)
+	{
+		existFlag = 1;//假设存在,即项目相同
+		if (newItemSet.itemCnt == itemSetCollection[i].itemCnt)//若项目数相同，继续比较项目集具体内容
+		{
+			//比较每一个项目是否一样
+			existFlag = 1;
+			for (int j = 0; j < newItemSet.itemCnt && existFlag == 1; ++j)
+			{
+				int sameItemPos = itemSetCollection[i].Item_Exist(newItemSet.itemSet[j].productionOrder,
+					newItemSet.itemSet[j].candidateOrder, newItemSet.itemSet[j].dotPos);
+				//若项目存在，且小尾巴数目相同，继续比较小尾巴
+				if (sameItemPos > -1
+					&& newItemSet.itemSet[j].lookaheadChCnt == itemSetCollection[i].itemSet[sameItemPos].lookaheadChCnt)
+				{
+					//比较每一个小尾巴是否一样
+					existFlag = 1;
+					for (int k = 0; k < newItemSet.itemSet[j].lookaheadChCnt && existFlag == 1; ++k)
+					{
+						char currenLookahead = newItemSet.itemSet[j].lookaheadCh[k];
+						int sameLookaheadPos = itemSetCollection[i].itemSet[sameItemPos].Lookahead_Exist(currenLookahead);
+						if (sameLookaheadPos == -1)//小尾巴不存在
+						{
+							existFlag = 0;
+						}
+						else
+							existFlag = 1;
+					}
+					
+				}
+				else
+				{
+					existFlag = 0;
+				}
+			}
+		}	
+		else
+		{
+			existFlag = 0;
+		}
+	}
+	if (existFlag == 1)//存在
+		return (i - 1);
+	else
+		return -1;
 }
 
