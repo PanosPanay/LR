@@ -688,6 +688,14 @@ void LR::Closure(ITEMSET* the_ItemSet)//输入：项目集itemSet
 void LR::LR1_DFA()
 {
 	//对分析表初始化
+	//action分析表初始化
+	for (int i = 0; i < STATE_NUM; ++i)
+	{
+		for (int j = 0; j < TERMINAL_NUM; ++j)
+		{
+			actionTable[i][j] = "\0";
+		}
+	}
 	//goto分析表初始化
 	for (int i = 0; i < STATE_NUM; ++i)
 	{
@@ -765,15 +773,93 @@ void LR::LR1_DFA()
 				}
 			}
 			//再遍历终结符
-			for()
+			for (int j = 0; j < G.terminalNum; ++j)
+			{	//每一个文法符号都可能产生一个新的项目集
+				newItemSet.itemCnt = 0;
+
+				char x = G.terminal[j];
+				int xExistFlag = 0;//=0表示go（I,X)=空，即该项目集不存在此转换
+
+				//遍历该项目集的每一个项目
+				for (int k = 0; k < itemSetCollection[i].itemCnt; ++k)
+				{
+					int currentDotPos = itemSetCollection[i].itemSet[k].dotPos;
+					int currentProductionOrder = itemSetCollection[i].itemSet[k].productionOrder;
+					int currentCandidateOrder = itemSetCollection[i].itemSet[k].candidateOrder;
+					int currentLookaheadCnt = itemSetCollection[i].itemSet[k].lookaheadChCnt;
+					//A->b.xw,..
+					if (G.productionList[currentProductionOrder].formula[currentCandidateOrder][currentDotPos] == x)
+					{
+						xExistFlag = 1;
+						newItemSet.itemSet[newItemSet.itemCnt].productionOrder = currentProductionOrder;
+						newItemSet.itemSet[newItemSet.itemCnt].candidateOrder = currentCandidateOrder;
+						newItemSet.itemSet[newItemSet.itemCnt].dotPos = currentDotPos + 1;//.右移一位
+						newItemSet.itemSet[newItemSet.itemCnt].lookaheadChCnt = currentLookaheadCnt;
+						for (int l = 0; l < currentLookaheadCnt; ++l)
+						{
+							newItemSet.itemSet[newItemSet.itemCnt].lookaheadCh[l] = itemSetCollection[i].itemSet[k].lookaheadCh[l];
+						}
+						++newItemSet.itemCnt;
+					}
+				}
+				if (xExistFlag == 1)//go（I, X) != 空
+				{
+					Closure(&newItemSet);
+					int newItemExisted = ItemSet_Exist(newItemSet);
+					if (newItemExisted == -1)//不存在该项目集，则加入,并在分析表中填入状态转移序号
+					{
+						itemSetCollection[stateNum] = newItemSet;//是否要自己重载等号运算符？
+						actionTable[i][j] = "S";
+						actionTable[i][j] += to_string(stateNum);
+						++stateNum;
+					}
+					else//该项目集已存在
+					{
+						actionTable[i][j] = "S";
+						actionTable[i][j] += to_string(newItemExisted);
+					}
+				}
+			}
 		}
 	}
 }
 
-//构造LR(1)分析表
-/*void LR::LR1_Analyze_Table()
+//构造LR(1)分析表，填充规约和接收项，转移表项在LR1_DFA（）中填写
+void LR::LR1_Analyze_Table()
 {
-}*/
+	for (int i = 0; i < stateNum; ++i)
+	{
+		for (int j = 0; j < itemSetCollection[i].itemCnt; ++j)
+		{
+			int currentProductionOrder = itemSetCollection[i].itemSet[j].productionOrder;
+			int currentCandidateOrder = itemSetCollection[i].itemSet[j].candidateOrder;
+			int currentDotPos = itemSetCollection[i].itemSet[j].dotPos;
+			//是规约项
+			if (G.productionList[currentProductionOrder].formula[currentCandidateOrder][currentDotPos] == '\0')
+			{
+				string R = "R ";
+				if (currentProductionOrder == G.productionNum)//是S'->S接受项
+				{
+					R += G.nonTerminal[0].nonTerminal;
+					R += "'";
+				}
+				else
+					R += G.nonTerminal[currentProductionOrder].nonTerminal;
+				R += "->";
+				for (int l = 0; l < currentDotPos; ++l)
+				{
+					R += G.productionList[currentProductionOrder].formula[currentCandidateOrder][l];
+				}
+				//对每个小尾巴对应的表项填入规约式
+				for (int k = 0; k < itemSetCollection[i].itemSet[j].lookaheadChCnt; ++k)
+				{
+					int terminalOrder = G.isTerminal(itemSetCollection[i].itemSet[j].lookaheadCh[k]);
+					actionTable[i][terminalOrder] = R;
+				}
+			}
+		}
+	}
+}
 
 //LR(1)分析程序//算法4.3
 void LR::LR1_Analyze()

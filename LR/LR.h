@@ -88,12 +88,12 @@ public:
 	int forwardIp = 0;										//向前指针
 	int stateNum = 0;										//状态数
 	ITEMSET itemSetCollection[STATE_NUM];					//LR分析的项目集规范族。DFA可以结合分析表得到.
-	string actionTable[STATE_NUM][TERMINAL_NUM];			//LR分析表的action表
-	int gotoTable[STATE_NUM][NONTERMINAL_NUM];				//LR分析的goto表//赋初值都为-1？
+	string actionTable[STATE_NUM][TERMINAL_NUM];			//LR分析表的action表//赋初值都为"\0"
+	int gotoTable[STATE_NUM][NONTERMINAL_NUM];				//LR分析的goto表//赋初值都为-1
 
 	void Closure(ITEMSET* the_ItemSet);						//构造项目集的闭包
 	void LR1_DFA();											//构造识别文法所有活前缀的LR(1) DFA,即构造LR(1)项目集规范族并构造LR(1)分析表。因为DFA各项目之间的关系即可在分析表中得到
-	//void LR1_Analyze_Table();								//构造LR(1)分析表
+	void LR1_Analyze_Table();								//构造LR(1)分析表，填充规约和接收项，转移表项在LR1_DFA（）中完成
 	void LR1_Analyze();										//LR(1)分析程序//算法4.3
 	void Input();											//将待分析的字符串w$放入输入缓冲区,并置向前指针指向w$的第一个符号
 	int ItemSet_Exist(ITEMSET newItemSet);					//判断项目集是否已经存在，不存在返回-1，存在返回在项目集规范族中的序号0..
