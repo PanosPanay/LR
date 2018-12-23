@@ -102,4 +102,5 @@ public:
 	void Output_LR1_ItemSetCollection();					//输出LR(1)项目集规范族
 	void OutPut_LR1_Analyze_Table();						//输出LR(1)分析表
 	void Translate();										//翻译程序
+	int integerBits(int number);							//求整数位数
 };

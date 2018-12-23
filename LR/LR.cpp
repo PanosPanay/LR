@@ -1085,6 +1085,7 @@ void LR::Input()
 		}
 	}
 	inputBufer[i] = '$';
+	inputBufer[i+1] = '\0';
 	forwardIp = 0;//向前指针指向w$的第一个符号
 }
 
@@ -1402,11 +1403,21 @@ void LR::Translate()
 		int len1 = 0;
 		for (j = 0; j <= stkTop; ++j)
 		{
-			if (stateStk[j] >= 10)
-				len1 += 2;
+			int len2;
+			if (integerBits(stateStk[j]) >= valStk[j].length())
+			{
+				len1 += integerBits(stateStk[j]);
+				len2 = integerBits(stateStk[j]);
+			}
 			else
-				len1 += 1;
-			cout << stateStk[j] << " ";
+			{
+				len1 += valStk[j].length();
+				len2 = valStk[j].length();
+			}
+			cout << stateStk[j];
+			for (int k = integerBits(stateStk[j]); k < len2; ++k)
+				cout << " ";
+			cout << " ";
 			++len1;
 		}
 		for (j = len1 + 1; j < 50; ++j)
@@ -1547,16 +1558,31 @@ void LR::Translate()
 
 		//value栈
 		cout << "     ";
-		//len1 = 0;
+		len1 = 0;
 		for (j = 0; j <= oldStkTop; ++j)
 		{
 			cout << oldvalStk[j];
-			if (oldStateStk[j] >= 10)
-				cout << "  ";
+			if (integerBits(stateStk[j]) >= valStk[j].length())
+				len1 = integerBits(stateStk[j]);
 			else
+				len1 = valStk[j].length();
+			for (int k = valStk[j].length(); k < len1; ++k)
 				cout << " ";
+			cout << " ";
 		}
 		cout << endl;
 	}
+}
+
+//求整数位数
+int LR::integerBits(int number)
+{
+	int sizeTable[9] = { 9,99,999,9999,99999,999999,9999999,99999999,999999999 };
+	for (int i = 0; i < 9; ++i)
+	{
+		if (number <= sizeTable[i])
+			return (i + 1);
+	}
+	return 10;
 }
 
